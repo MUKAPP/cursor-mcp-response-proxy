@@ -1,0 +1,24 @@
+[project]
+name = "cursor-mcp-response-proxy"
+version = "0.2.0"
+description = "Cursor MCP stdio 响应代理：连接多种上游传输并保护过大的响应"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.28.0",
+    "mcp>=1.28,<2",
+]
+
+[project.scripts]
+cursor-mcp-response-proxy = "cursor_mcp_response_proxy.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
