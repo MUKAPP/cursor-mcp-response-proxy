@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import queue
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 from cursor_mcp_response_proxy.response_handler import (
@@ -34,12 +36,7 @@ def test_stdio_proxy_forwards_and_saves_large_tool_result(tmp_path: Path) -> Non
             "arguments": {"characters": 15_000},
         },
     }
-    standard_input = "\n".join(
-        json.dumps(message, separators=(",", ":"))
-        for message in (initialize_request, tool_request)
-    ) + "\n"
-
-    completed_process = subprocess.run(
+    proxy_process = subprocess.Popen(
         [
             sys.executable,
             "-m",
@@ -55,19 +52,44 @@ def test_stdio_proxy_forwards_and_saves_large_tool_result(tmp_path: Path) -> Non
             sys.executable,
             str(fixture_server),
         ],
-        input=standard_input,
-        capture_output=True,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
         encoding="utf-8",
-        timeout=10,
-        check=True,
     )
 
-    response_messages = [
-        json.loads(line)
-        for line in completed_process.stdout.splitlines()
-        if line.strip()
-    ]
+    assert proxy_process.stdin is not None
+    assert proxy_process.stdout is not None
+    assert proxy_process.stderr is not None
+
+    response_lines: queue.Queue[str] = queue.Queue()
+
+    def read_proxy_output() -> None:
+        for line in proxy_process.stdout:
+            if line.strip():
+                response_lines.put(line)
+
+    output_reader = threading.Thread(target=read_proxy_output, daemon=True)
+    output_reader.start()
+
+    try:
+        response_messages = []
+        for request_message in (initialize_request, tool_request):
+            proxy_process.stdin.write(
+                json.dumps(request_message, separators=(",", ":")) + "\n"
+            )
+            proxy_process.stdin.flush()
+            response_messages.append(
+                json.loads(response_lines.get(timeout=10))
+            )
+    finally:
+        proxy_process.stdin.close()
+        proxy_process.wait(timeout=10)
+        output_reader.join(timeout=10)
+
+    proxy_stderr = proxy_process.stderr.read()
+    assert proxy_process.returncode == 0, proxy_stderr
     assert [message["id"] for message in response_messages] == [1, 2]
     assert response_messages[0]["result"]["serverInfo"]["name"] == "test-upstream"
 
