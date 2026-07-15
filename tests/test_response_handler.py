@@ -78,9 +78,15 @@ def test_large_tools_call_is_saved_and_truncated(tmp_path: Path) -> None:
     saved = json.loads(saved_path.read_text(encoding="utf-8"))
     assert saved["result"]["content"][0]["text"] == huge_text
 
-    preview = result["result"]["content"][0]["text"]
-    assert "本地文件" in preview
-    assert str(saved_path) in preview
+    overflow_notice = result["result"]["content"][0]["text"]
+    assert "响应过大，已保存到临时文件" in overflow_notice
+    assert str(saved_path) in overflow_notice
+    assert f"原始字符数: {original_chars}" in overflow_notice
+    assert "----------\n" in overflow_notice
+    assert huge_text[:200] in overflow_notice
+    assert "预览开始" not in overflow_notice
+    assert "预览结束" not in overflow_notice
+    assert "预览字符数" not in overflow_notice
     assert measure_message_chars(result) < original_chars
     types.CallToolResult.model_validate(result["result"])
 
@@ -115,7 +121,7 @@ def test_large_resource_result_keeps_resource_shape(tmp_path: Path) -> None:
     )
 
     assert result["result"]["contents"][0]["uri"].startswith("file://")
-    assert "本地文件" in result["result"]["contents"][0]["text"]
+    assert "响应过大，已保存到临时文件" in result["result"]["contents"][0]["text"]
     metadata = result["result"][MCP_METADATA_KEY][PROXY_METADATA_KEY]
     assert metadata["truncated"] is True
     types.ReadResourceResult.model_validate(result["result"])
@@ -150,7 +156,7 @@ def test_large_prompt_result_keeps_prompt_shape(tmp_path: Path) -> None:
     )
 
     assert result["result"]["messages"][0]["role"] == "user"
-    assert "本地文件" in result["result"]["messages"][0]["content"]["text"]
+    assert "响应过大，已保存到临时文件" in result["result"]["messages"][0]["content"]["text"]
     metadata = result["result"][MCP_METADATA_KEY][PROXY_METADATA_KEY]
     assert metadata["truncated"] is True
     types.GetPromptResult.model_validate(result["result"])

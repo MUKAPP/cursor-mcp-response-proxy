@@ -94,19 +94,13 @@ def _build_overflow_notice(
     *,
     saved_path: Path,
     original_chars: int,
-    preview_chars: int,
     preview_text: str,
 ) -> str:
     return (
-        "【cursor-mcp-response-proxy】上游响应超过 Cursor 的安全大小，"
-        "完整内容已保存到本地文件。\n"
-        f"- 本地文件: {saved_path}\n"
-        f"- 原始字符数: {original_chars}\n"
-        f"- 预览字符数: {preview_chars}\n"
-        "- 如需完整内容，请读取上述文件。\n\n"
-        "----- 预览开始 -----\n"
+        f"响应过大，已保存到临时文件: {saved_path}\n"
+        f"原始字符数: {original_chars}\n"
+        "----------\n"
         f"{preview_text}\n"
-        "----- 预览结束 -----\n"
     )
 
 
@@ -245,7 +239,6 @@ def maybe_truncate_message(
     notice = _build_overflow_notice(
         saved_path=saved_path,
         original_chars=original_chars,
-        preview_chars=preview_chars,
         preview_text=preview_text,
     )
     metadata = _build_metadata(

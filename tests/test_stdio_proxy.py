@@ -98,7 +98,7 @@ def test_stdio_proxy_forwards_and_saves_large_tool_result(tmp_path: Path) -> Non
     saved_path = Path(metadata["saved_path"])
     assert metadata["truncated"] is True
     assert saved_path.exists()
-    assert "本地文件" in tool_result["content"][0]["text"]
+    assert "响应过大，已保存到临时文件" in tool_result["content"][0]["text"]
 
     saved_message = json.loads(saved_path.read_text(encoding="utf-8"))
     saved_text = saved_message["result"]["content"][0]["text"]
