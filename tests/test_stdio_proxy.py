@@ -58,6 +58,7 @@ def test_stdio_proxy_forwards_and_saves_large_tool_result(tmp_path: Path) -> Non
         input=standard_input,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         timeout=10,
         check=True,
     )
