@@ -24,11 +24,22 @@ Cursor (stdio)
 
 ## 安装
 
+### Linux / macOS
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
 pip install pytest
+```
+
+### Windows PowerShell
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e .
+python -m pip install pytest
 ```
 
 验证：
@@ -37,6 +48,21 @@ pip install pytest
 PYTHONPATH=src pytest
 cursor-mcp-response-proxy --help
 ```
+
+Windows PowerShell 中可运行：
+
+```powershell
+python -m pytest
+.\.venv\Scripts\cursor-mcp-response-proxy.exe --help
+```
+
+## 平台支持
+
+- Linux：已完成开发与端到端验证。
+- Windows：使用 UTF-8 stdio 和标准 Windows `file:///C:/...` URI；上游子进程由官方 MCP Python SDK 的 Windows 实现负责启动与终止。
+- macOS：与 Linux 使用相同的 POSIX 路径，传输层由官方 MCP Python SDK 提供。
+
+自动化测试会验证 Windows 路径 URI 和 UTF-8 标准流配置。发布前仍建议在目标 Windows 与 macOS 版本上执行一次实际 Cursor MCP 冒烟测试。
 
 ## 默认响应保护
 
@@ -84,6 +110,28 @@ Anysearch 示例：
 ```
 
 `${ANYSEARCH_API_KEY}` 由代理启动时展开。不要把真实密钥写入仓库。
+
+Windows 中将 `command` 改为实际的虚拟环境路径。JSON 字符串中的反斜杠需要写成 `\\`：
+
+```json
+{
+  "mcpServers": {
+    "anysearch": {
+      "command": "C:\\path\\to\\cursor-mcp-response-proxy\\.venv\\Scripts\\cursor-mcp-response-proxy.exe",
+      "args": [
+        "streamable-http",
+        "--url",
+        "https://api.anysearch.com/mcp",
+        "--header",
+        "Authorization=Bearer ${ANYSEARCH_API_KEY}"
+      ],
+      "env": {
+        "ANYSEARCH_API_KEY": "你的_API_KEY"
+      }
+    }
+  }
+}
+```
 
 ### SSE
 
@@ -176,4 +224,3 @@ src/cursor_mcp_response_proxy/
 tests/
   fixtures/            # 测试专用 MCP 上游
 ```
-

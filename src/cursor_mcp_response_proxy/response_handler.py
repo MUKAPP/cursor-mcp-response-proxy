@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import copy
 import json
-from pathlib import Path
+from pathlib import Path, PurePath, PureWindowsPath
 from typing import Any
+from urllib.parse import quote
 
 from .storage import save_payload
 
@@ -123,6 +124,18 @@ def _build_metadata(
     }
 
 
+def _path_to_file_uri(path: PurePath) -> str:
+    """将 POSIX 或 Windows 绝对路径转换为标准 file URI。"""
+    if isinstance(path, PureWindowsPath):
+        windows_path = path.as_posix()
+        encoded_path = quote(windows_path, safe="/:")
+        if windows_path.startswith("//"):
+            return f"file:{encoded_path}"
+        return f"file:///{encoded_path}"
+
+    return Path(path).as_uri()
+
+
 def _rewrite_result_for_method(
     message: dict[str, Any],
     *,
@@ -152,7 +165,7 @@ def _rewrite_result_for_method(
         rewritten_message["result"] = {
             "contents": [
                 {
-                    "uri": f"file://{saved_path}",
+                    "uri": _path_to_file_uri(saved_path),
                     "mimeType": "text/plain",
                     "text": notice,
                 }
